@@ -1,0 +1,131 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Todo AppSync SAM Demo
+
+Resources:
+  TodoAPI:
+    Type: AWS::AppSync::GraphQLApi
+    Properties:
+      Name: "TKO-SAM"
+      AuthenticationType: API_KEY
+      # AuthenticationType: "AMAZON_COGNITO_USER_POOLS"
+      # UserPoolConfig:
+      #   UserPoolId:
+      #     Ref: userPoolId
+      #   AwsRegion: !Ref AWS::Region # cognito user pool region
+
+  TodoDataTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: yes
+
+  AppSyncAPIKey:
+    Type: AWS::AppSync::ApiKey
+    Properties:
+      ApiId: !Sub ${TodoAPI.ApiId}
+
+  AppSyncSchema:
+    Type: AWS::AppSync::GraphQLSchema
+    Properties:
+      ApiId: !Sub ${TodoAPI.ApiId}
+      DefinitionS3Location: ./api/schema.graphql
+
+  TodoDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId: !Sub ${TodoAPI.ApiId}
+      Name: TodoTable
+      Type: AMAZON_DYNAMODB
+      DynamoDBConfig:
+        AwsRegion: !Ref AWS::Region
+        TableName: !Ref TodoDataTable
+      ServiceRoleArn: !Sub ${TodoApiServiceRole.Arn}
+
+  ListTodosResolver:
+    Type: AWS::AppSync::Resolver
+    Properties:
+      ApiId: !Sub ${TodoAPI.ApiId}
+      TypeName: Query
+      FieldName: listTodos
+      DataSourceName: !Sub ${TodoDataSource.Name}
+      RequestMappingTemplateS3Location: ./resolvers/Query.listTodos.req.vtl
+      ResponseMappingTemplateS3Location: ./resolvers/Query.listTodos.res.vtl
+
+  GetTodoResolver:
+    Type: AWS::AppSync::Resolver
+    Properties:
+      ApiId: !Sub ${TodoAPI.ApiId}
+      TypeName: Query
+      FieldName: getTodo
+      DataSourceName: !Sub ${TodoDataSource.Name}
+      RequestMappingTemplateS3Location: ./resolvers/Query.getTodo.req.vtl
+      ResponseMappingTemplateS3Location: ./resolvers/Query.getTodo.res.vtl
+
+  CreateTodosResolver:
+    Type: AWS::AppSync::Resolver
+    Properties:
+      ApiId: !Sub ${TodoAPI.ApiId}
+      TypeName: Mutation
+      FieldName: createTodo
+      DataSourceName: !Sub ${TodoDataSource.Name}
+      RequestMappingTemplateS3Location: ./resolvers/Mutation.createTodo.req.vtl
+      ResponseMappingTemplateS3Location: ./resolvers/Mutation.createTodo.res.vtl
+
+  DeleteTodosResolver:
+    Type: AWS::AppSync::Resolver
+    Properties:
+      ApiId: !Sub ${TodoAPI.ApiId}
+      TypeName: Mutation
+      FieldName: deleteTodo
+      DataSourceName: !Sub ${TodoDataSource.Name}
+      RequestMappingTemplateS3Location: ./resolvers/Mutation.deleteTodo.req.vtl
+      ResponseMappingTemplateS3Location: ./resolvers/Mutation.deleteTodo.res.vtl
+
+  TodoApiServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSAppSyncPushToCloudWatchLogs
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Principal:
+              Service:
+                - appsync.amazonaws.com
+      Policies:
+        - PolicyName: appsync-todo-table
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:*
+                Resource: !Sub ${TodoDataTable.Arn}
+
+Outputs:
+  TempApiKey:
+    Description: Temporary API Key
+    Value: !Sub ${AppSyncAPIKey.ApiKey}
+
+  TodoAPI:
+    Description: TODO GraphQL API
+    Value: !Sub ${TodoAPI.GraphQLUrl}
+
+  TodoAPIIAMRole:
+    Description: TODO GraphQL API IAM Role
+    Value: !Sub ${TodoApiServiceRole.Arn}
+
+  TodoTable:
+    Description: TODO Table ARN
+    Value: !Sub ${TodoDataTable.Arn}
