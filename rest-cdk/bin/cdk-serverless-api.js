@@ -1,0 +1,9 @@
+#!/usr/bin/env node
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+require("source-map-support/register");
+const cdk = require("@aws-cdk/core");
+const cdk_serverless_api_stack_1 = require("../lib/cdk-serverless-api-stack");
+const app = new cdk.App();
+new cdk_serverless_api_stack_1.CdkServerlessApiStack(app, 'CdkServerlessApiStack');
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiY2RrLXNlcnZlcmxlc3MtYXBpLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsiY2RrLXNlcnZlcmxlc3MtYXBpLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7OztBQUNBLHVDQUFxQztBQUNyQyxxQ0FBcUM7QUFDckMsOEVBQXdFO0FBRXhFLE1BQU0sR0FBRyxHQUFHLElBQUksR0FBRyxDQUFDLEdBQUcsRUFBRSxDQUFDO0FBQzFCLElBQUksZ0RBQXFCLENBQUMsR0FBRyxFQUFFLHVCQUF1QixDQUFDLENBQUMiLCJzb3VyY2VzQ29udGVudCI6WyIjIS91c3IvYmluL2VudiBub2RlXG5pbXBvcnQgJ3NvdXJjZS1tYXAtc3VwcG9ydC9yZWdpc3Rlcic7XG5pbXBvcnQgKiBhcyBjZGsgZnJvbSAnQGF3cy1jZGsvY29yZSc7XG5pbXBvcnQgeyBDZGtTZXJ2ZXJsZXNzQXBpU3RhY2sgfSBmcm9tICcuLi9saWIvY2RrLXNlcnZlcmxlc3MtYXBpLXN0YWNrJztcblxuY29uc3QgYXBwID0gbmV3IGNkay5BcHAoKTtcbm5ldyBDZGtTZXJ2ZXJsZXNzQXBpU3RhY2soYXBwLCAnQ2RrU2VydmVybGVzc0FwaVN0YWNrJyk7XG4iXX0=

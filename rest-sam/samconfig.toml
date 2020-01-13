@@ -1,0 +1,12 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "sam-rest-api"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-jplfp9dbcgyl"
+s3_prefix = "sam-rest-api"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "VersionParam=\"v1\" StageNameParam=\"prod\""
+

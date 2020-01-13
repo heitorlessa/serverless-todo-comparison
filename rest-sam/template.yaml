@@ -1,0 +1,236 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: "SAM REST API Sample Template"
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Runtime: nodejs10.x
+    Timeout: 60
+    Tracing: Active
+    MemorySize: 1024
+    Environment:
+      Variables:
+        PRIMARY_KEY: "id"
+        TABLE_NAME: !Ref TodoTable
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1"
+    Tags:
+      Application: sam-rest-api
+
+Parameters:
+  VersionParam:
+    Type: String
+    Default: v1
+  StageNameParam:
+    Type: String
+    Default: prod
+
+Resources:
+  TodoTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String
+      TableName: !Join ["-", [todos, !Ref AWS::StackName]]
+      SSESpecification:
+        SSEEnabled: true
+
+  # API declaration
+  TodoApi:
+    Type: AWS::Serverless::Api
+    MethodSettings:
+      DataTraceEnabled: true
+      MetricsEnabled: true
+      HttpMethod: "*"
+      ResourcePath: !Sub "${VersionParam}/*"
+      LoggingLevel: INFO
+    AccessLogSetting:
+      DestinationArn: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${ApiAccessLogGroup}"
+      Format: '$context.identity.sourceIp $context.authorizer.claims.sub [$context.requestTime] "$context.httpMethod $context.resourcePath $context.protocol" $context.status $context.requestId $context.awsEndpointRequestId $context.xrayTraceId $context.responseLatency $context.integrationLatency "$context.error.message"'
+    Properties:
+      Name: TodoApi
+      StageName: !Ref StageNameParam
+      TracingEnabled: true
+      Cors:
+        AllowOrigin: "'*'"
+        AllowMethods: "'OPTIONS,HEAD,GET,PUT,POST,DELETE'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+      EndpointConfiguration: REGIONAL
+      Auth:
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt "TodoUserPool.Arn"
+        DefaultAuthorizer: CognitoAuthorizer
+
+  # API Functions
+  GetTodoFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: src
+      Handler: getTodo.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref TodoTable
+
+      Events:
+        GetItem:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /todos/{id}
+            Method: get
+            RestApiId: !Ref TodoApi
+            Auth:
+              Authorizer: NONE
+
+  ListTodosFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: src
+      Handler: listTodos.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref TodoTable
+
+      Events:
+        GetItem:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /todos
+            Method: get
+            RestApiId: !Ref TodoApi
+            Auth:
+              Authorizer: NONE
+
+  CreateTodoFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: src
+      Handler: createTodo.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TodoTable
+
+      Events:
+        PutItem:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /todos
+            Method: POST
+            RestApiId: !Ref TodoApi
+            Auth:
+              Authorizer: NONE
+
+  UpdateTodoFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: src
+      Handler: updateTodo.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TodoTable
+      Events:
+        UpdateItem:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /todos/{id}
+            Method: PUT
+            RestApiId: !Ref TodoApi
+            Auth:
+              Authorizer: NONE
+
+  DeleteTodoFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: src
+      Handler: deleteTodo.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TodoTable
+
+      Events:
+        DeleteItem:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /todos/{id}
+            Method: Delete
+            RestApiId: !Ref TodoApi
+            Auth:
+              Authorizer: NONE
+
+  # This role allows API Gateway to push execution and access logs to CloudWatch logs
+  ApiGatewayPushToCloudWatchRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Description: "Push logs to CloudWatch logs from API Gateway"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - "apigateway.amazonaws.com"
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+
+  ApiAccount:
+    Type: "AWS::ApiGateway::Account"
+    Properties:
+      CloudWatchRoleArn: !GetAtt ApiGatewayPushToCloudWatchRole.Arn
+
+  ApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/apigateway/AccessLog-${TodoApi}
+      RetentionInDays: 365
+  
+  #cognito declaration
+  TodoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+      UserPoolName: TodoUsers
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 6
+          RequireLowercase: true
+          RequireNumbers: false
+          RequireSymbols: false
+          RequireUppercase: true
+
+  TodoUserPoolTokenClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref TodoUserPool
+      GenerateSecret: false
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows: ["code", "implicit"]
+      CallbackURLs:
+        [
+          "http://localhost:3000"
+        ]
+      SupportedIdentityProviders: ["COGNITO"]
+      AllowedOAuthScopes: ["phone", "email", "openid"]
+      ExplicitAuthFlows:
+        - USER_PASSWORD_AUTH
+
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  TodoRestApi:
+    Description: "API Gateway endpoint URL for Prod stage for getting all todos function"
+    Value: !Sub "https://${TodoApi}.execute-api.${AWS::Region}.amazonaws.com/${StageNameParam}"
+  CognitoID:
+    Description: The Cognito UserPool ID
+    Value: !Ref TodoUserPool
+  CognitoClientID:
+    Description: The Cognito UserPool Client ID
+    Value: !Ref TodoUserPoolTokenClient
