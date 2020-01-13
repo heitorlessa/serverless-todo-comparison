@@ -2,12 +2,8 @@ version = 0.1
 [default]
 [default.deploy]
 [default.deploy.parameters]
-stack_name = "sam-rest-api"
+stack_name = "graphql-sam-tko"
 s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1pssy5gdxqcao"
-s3_prefix = "sam-rest-api"
+s3_prefix = "graphql-sam-tko"
 region = "eu-west-1"
-profile = "twitch"
-confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
-parameter_overrides = "VersionParam=v1 StageNameParam=prod"
-
