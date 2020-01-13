@@ -1,0 +1,164 @@
+{
+	"info": {
+		"_postman_id": "5bdab6a4-ae63-4f12-a77d-5fd252970f41",
+		"name": "TodosRestAPI",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "CreateTodo",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"title\": \"Release candidate with SAM v5\",\n\t\"todoStatus\": \"In progress\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_uri}}/todos",
+					"host": [
+						"{{base_uri}}"
+					],
+					"path": [
+						"todos"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GetTodo",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_uri}}/todos/f75d4226-abef-4f76-9bbc-e3b4ef821ed1",
+					"host": [
+						"{{base_uri}}"
+					],
+					"path": [
+						"todos",
+						"f75d4226-abef-4f76-9bbc-e3b4ef821ed1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "DeleteTodo",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_uri}}/todos/f75d4226-abef-4f76-9bbc-e3b4ef821ed1",
+					"host": [
+						"{{base_uri}}"
+					],
+					"path": [
+						"todos",
+						"f75d4226-abef-4f76-9bbc-e3b4ef821ed1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ListTodos",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_uri}}/todos",
+					"host": [
+						"{{base_uri}}"
+					],
+					"path": [
+						"todos"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "UpdateTodo",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"title\": \"Updated title\",\n    \"todoStatus\": \"Complete\"\n}"
+				},
+				"url": {
+					"raw": "{{base_uri}}/todos/f75d4226-abef-4f76-9bbc-e3b4ef821ed1",
+					"host": [
+						"{{base_uri}}"
+					],
+					"path": [
+						"todos",
+						"f75d4226-abef-4f76-9bbc-e3b4ef821ed1"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "2058599a-f33e-443f-87f2-c9faf66dba69",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "46e9d967-ce44-42d7-a9d9-cd918ef275f2",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"protocolProfileBehavior": {}
+}
