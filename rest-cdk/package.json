@@ -9,7 +9,6 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
-    "postinstall": "cd src && npm install",
     "reload-api": "npm run build && cdk synth --no-staging > template.yaml && sam local start-api"
   },
   "devDependencies": {
@@ -27,6 +26,7 @@
     "@aws-cdk/aws-dynamodb": "^1.20.0",
     "@aws-cdk/aws-lambda": "^1.20.0",
     "@aws-cdk/core": "^1.20.0",
+    "aws-sdk": "^2.601.0",
     "source-map-support": "^0.5.16"
   }
 }

@@ -1,0 +1,13 @@
+{
+  "name": "rest-todo-cdk",
+  "version": "1.0.0",
+  "description": "rest TODO CDK sample",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Justin Pirtle",
+  "dependencies": {
+    "aws-sdk": "^2.601.0",
+    "uuid": "^3.3.3"
+  }
+}
