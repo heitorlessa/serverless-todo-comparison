@@ -1,0 +1,11 @@
+# Todo sample app for TKO
+type Todo @model 
+          @auth(rules: [
+                { allow: owner, identityClaim: "sub" },
+                { allow: groups, groups: ["Admin"] }
+          ])
+{
+  id: ID!
+  name: String!
+  description: String
+}
