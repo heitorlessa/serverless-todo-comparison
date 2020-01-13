@@ -1,0 +1,819 @@
+Resources:
+  TodoAPI:
+    Type: AWS::AppSync::GraphQLApi
+    Properties:
+      AuthenticationType: API_KEY
+      Name: TodoApi-CDK
+    Metadata:
+      aws:cdk:path: GraphqlCdkStack/TodoAPI
+  AppSync2EventBridgeApiKey:
+    Type: AWS::AppSync::ApiKey
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+          - TodoAPI
+          - ApiId
+    Metadata:
+      aws:cdk:path: GraphqlCdkStack/AppSync2EventBridgeApiKey
+  TodoSchema:
+    Type: AWS::AppSync::GraphQLSchema
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+          - TodoAPI
+          - ApiId
+      Definition: >
+        # Todo sample app for TKO
+
+
+        type Todo {
+        	id: ID!
+        	name: String!
+        	description: String
+        	owner: String
+        }
+
+
+        input CreateTodoInput {
+        	id: ID
+        	name: String!
+        	description: String
+        }
+
+
+        input UpdateTodoInput {
+        	id: ID!
+        	name: String
+        	description: String
+        }
+
+
+        input DeleteTodoInput {
+        	id: ID
+        }
+
+
+        enum ModelAttributeTypes {
+        	binary
+        	binarySet
+        	bool
+        	list
+        	map
+        	number
+        	numberSet
+        	string
+        	stringSet
+        	_null
+        }
+
+
+        input ModelBooleanInput {
+        	ne: Boolean
+        	eq: Boolean
+        	attributeExists: Boolean
+        	attributeType: ModelAttributeTypes
+        }
+
+
+        input ModelFloatInput {
+        	ne: Float
+        	eq: Float
+        	le: Float
+        	lt: Float
+        	ge: Float
+        	gt: Float
+        	between: [Float]
+        	attributeExists: Boolean
+        	attributeType: ModelAttributeTypes
+        }
+
+
+        input ModelIDInput {
+        	ne: ID
+        	eq: ID
+        	le: ID
+        	lt: ID
+        	ge: ID
+        	gt: ID
+        	contains: ID
+        	notContains: ID
+        	between: [ID]
+        	beginsWith: ID
+        	attributeExists: Boolean
+        	attributeType: ModelAttributeTypes
+        	size: ModelSizeInput
+        }
+
+
+        input ModelIntInput {
+        	ne: Int
+        	eq: Int
+        	le: Int
+        	lt: Int
+        	ge: Int
+        	gt: Int
+        	between: [Int]
+        	attributeExists: Boolean
+        	attributeType: ModelAttributeTypes
+        }
+
+
+        input ModelSizeInput {
+        	ne: Int
+        	eq: Int
+        	le: Int
+        	lt: Int
+        	ge: Int
+        	gt: Int
+        	between: [Int]
+        }
+
+
+        enum ModelSortDirection {
+        	ASC
+        	DESC
+        }
+
+
+        input ModelStringInput {
+        	ne: String
+        	eq: String
+        	le: String
+        	lt: String
+        	ge: String
+        	gt: String
+        	contains: String
+        	notContains: String
+        	between: [String]
+        	beginsWith: String
+        	attributeExists: Boolean
+        	attributeType: ModelAttributeTypes
+        	size: ModelSizeInput
+        }
+
+
+        input ModelTodoConditionInput {
+        	name: ModelStringInput
+        	description: ModelStringInput
+        	and: [ModelTodoConditionInput]
+        	or: [ModelTodoConditionInput]
+        	not: ModelTodoConditionInput
+        }
+
+
+        type ModelTodoConnection {
+        	items: [Todo]
+        	nextToken: String
+        }
+
+
+        input ModelTodoFilterInput {
+        	id: ModelIDInput
+        	name: ModelStringInput
+        	description: ModelStringInput
+        	and: [ModelTodoFilterInput]
+        	or: [ModelTodoFilterInput]
+        	not: ModelTodoFilterInput
+        }
+
+
+        type Mutation {
+        	createTodo(input: CreateTodoInput!, condition: ModelTodoConditionInput): Todo
+        	updateTodo(input: UpdateTodoInput!, condition: ModelTodoConditionInput): Todo
+        	deleteTodo(input: DeleteTodoInput!, condition: ModelTodoConditionInput): Todo
+        }
+
+
+        type Query {
+        	getTodo(id: ID!): Todo
+        	listTodos(filter: ModelTodoFilterInput, limit: Int, nextToken: String): ModelTodoConnection
+        }
+
+
+        type Subscription {
+        	onCreateTodo(owner: String): Todo
+        		@aws_subscribe(mutations: ["createTodo"])
+        	onUpdateTodo(owner: String): Todo
+        		@aws_subscribe(mutations: ["updateTodo"])
+        	onDeleteTodo(owner: String): Todo
+        		@aws_subscribe(mutations: ["deleteTodo"])
+        }
+    Metadata:
+      aws:cdk:path: GraphqlCdkStack/TodoSchema
+  todoTableC937F2F9:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      KeySchema:
+        - AttributeName: GraphqlCdkStack
+          KeyType: HASH
+      AttributeDefinitions:
+        - AttributeName: GraphqlCdkStack
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: GraphqlCdkStack/todoTable/Resource
+  todoDynamoDBRoleDBDD3262:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: appsync.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/AmazonDynamoDBFullAccess
+    Metadata:
+      aws:cdk:path: GraphqlCdkStack/todoDynamoDBRole/Resource
+  todoDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+          - TodoAPI
+          - ApiId
+      Name: todoTable
+      Type: AMAZON_DYNAMODB
+      Description: Todo Table
+      DynamoDBConfig:
+        AwsRegion:
+          Ref: AWS::Region
+        TableName:
+          Ref: todoTableC937F2F9
+      ServiceRoleArn: TBDD
+    Metadata:
+      aws:cdk:path: GraphqlCdkStack/todoDataSource
+  createTodoResolver:
+    Type: AWS::AppSync::Resolver
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+          - TodoAPI
+          - ApiId
+      FieldName: createTodo
+      TypeName: Mutation
+      DataSourceName: todoTable
+      RequestMappingTemplate: >-
+        ## [Start] Determine request authentication mode **
+
+        #if( $util.isNullOrEmpty($authMode) && !$util.isNull($ctx.identity) && !$util.isNull($ctx.identity.sub) && !$util.isNull($ctx.identity.issuer) && !$util.isNull($ctx.identity.username) && !$util.isNull($ctx.identity.claims) && !$util.isNull($ctx.identity.sourceIp) && !$util.isNull($ctx.identity.defaultAuthStrategy) )
+          #set( $authMode = "userPools" )
+        #end
+
+        ## [End] Determine request authentication mode **
+
+        ## [Start] Check authMode and execute owner/group checks **
+
+        #if( $authMode == "userPools" )
+          ## [Start] Static Group Authorization Checks **
+          #set($isStaticGroupAuthorized = $util.defaultIfNull(
+                    $isStaticGroupAuthorized, false))
+          ## Authorization rule: { allow: groups, groups: ["Admin"], groupClaim: "cognito:groups" } **
+          #set( $userGroups = $util.defaultIfNull($ctx.identity.claims.get("cognito:groups"), []) )
+          #set( $allowedGroups = ["Admin"] )
+          #foreach( $userGroup in $userGroups )
+            #if( $allowedGroups.contains($userGroup) )
+              #set( $isStaticGroupAuthorized = true )
+              #break
+            #end
+          #end
+          ## [End] Static Group Authorization Checks **
+
+
+          ## No Dynamic Group Authorization Rules **
+
+
+          ## [Start] Owner Authorization Checks **
+          #set( $isOwnerAuthorized = false )
+          ## Authorization rule: { allow: owner, ownerField: "owner", identityClaim: "sub" } **
+          #set( $allowedOwners0 = $util.defaultIfNull($ctx.args.input.owner, null) )
+          #set( $identityValue = $util.defaultIfNull($ctx.identity.claims.get("sub"), "___xamznone____") )
+          #if( $util.isList($allowedOwners0) )
+            #foreach( $allowedOwner in $allowedOwners0 )
+              #if( $allowedOwner == $identityValue )
+                #set( $isOwnerAuthorized = true )
+              #end
+            #end
+          #end
+          #if( $util.isString($allowedOwners0) )
+            #if( $allowedOwners0 == $identityValue )
+              #set( $isOwnerAuthorized = true )
+            #end
+          #end
+          #if( $util.isNull($allowedOwners0) && (! $ctx.args.input.containsKey("owner")) )
+            $util.qr($ctx.args.input.put("owner", $identityValue))
+            #set( $isOwnerAuthorized = true )
+          #end
+          ## [End] Owner Authorization Checks **
+
+
+          ## [Start] Throw if unauthorized **
+          #if( !($isStaticGroupAuthorized == true || $isDynamicGroupAuthorized == true || $isOwnerAuthorized == true) )
+            $util.unauthorized()
+          #end
+          ## [End] Throw if unauthorized **
+        #end
+
+        ## [End] Check authMode and execute owner/group checks **
+
+
+        ## [Start] Prepare DynamoDB PutItem Request. **
+
+        $util.qr($context.args.input.put("createdAt", $util.defaultIfNull($ctx.args.input.createdAt, $util.time.nowISO8601())))
+
+        $util.qr($context.args.input.put("updatedAt", $util.defaultIfNull($ctx.args.input.updatedAt, $util.time.nowISO8601())))
+
+        $util.qr($context.args.input.put("__typename", "Todo"))
+
+        #set( $condition = {
+          "expression": "attribute_not_exists(#id)",
+          "expressionNames": {
+              "#id": "id"
+          }
+        } )
+
+        #if( $context.args.condition )
+          #set( $condition.expressionValues = {} )
+          #set( $conditionFilterExpressions = $util.parseJson($util.transform.toDynamoDBConditionExpression($context.args.condition)) )
+          $util.qr($condition.put("expression", "($condition.expression) AND $conditionFilterExpressions.expression"))
+          $util.qr($condition.expressionNames.putAll($conditionFilterExpressions.expressionNames))
+          $util.qr($condition.expressionValues.putAll($conditionFilterExpressions.expressionValues))
+        #end
+
+        #if( $condition.expressionValues && $condition.expressionValues.size() == 0 )
+          #set( $condition = {
+          "expression": $condition.expression,
+          "expressionNames": $condition.expressionNames
+        } )
+
+        #end
+
+        {
+          "version": "2017-02-28",
+          "operation": "PutItem",
+          "key": #if( $modelObjectKey ) $util.toJson($modelObjectKey) #else {
+          "id":   $util.dynamodb.toDynamoDBJson($util.defaultIfNullOrBlank($ctx.args.input.id, $util.autoId()))
+        } #end,
+          "attributeValues": $util.dynamodb.toMapValuesJson($context.args.input),
+          "condition": $util.toJson($condition)
+        }
+
+        ## [End] Prepare DynamoDB PutItem Request. **
+      ResponseMappingTemplate: $util.toJson($ctx.result)
+    Metadata:
+      aws:cdk:path: GraphqlCdkStack/createTodoResolver
+  deleteTodoResolver:
+    Type: AWS::AppSync::Resolver
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+          - TodoAPI
+          - ApiId
+      FieldName: deleteTodo
+      TypeName: Mutation
+      DataSourceName: todoTable
+      RequestMappingTemplate: >-
+        ## [Start] Determine request authentication mode **
+
+        #if( $util.isNullOrEmpty($authMode) && !$util.isNull($ctx.identity) && !$util.isNull($ctx.identity.sub) && !$util.isNull($ctx.identity.issuer) && !$util.isNull($ctx.identity.username) && !$util.isNull($ctx.identity.claims) && !$util.isNull($ctx.identity.sourceIp) && !$util.isNull($ctx.identity.defaultAuthStrategy) )
+          #set( $authMode = "userPools" )
+        #end
+
+        ## [End] Determine request authentication mode **
+
+        ## [Start] Check authMode and execute owner/group checks **
+
+        #if( $authMode == "userPools" )
+          ## [Start] Static Group Authorization Checks **
+          #set($isStaticGroupAuthorized = $util.defaultIfNull(
+                    $isStaticGroupAuthorized, false))
+          ## Authorization rule: { allow: groups, groups: ["Admin"], groupClaim: "cognito:groups" } **
+          #set( $userGroups = $util.defaultIfNull($ctx.identity.claims.get("cognito:groups"), []) )
+          #set( $allowedGroups = ["Admin"] )
+          #foreach( $userGroup in $userGroups )
+            #if( $allowedGroups.contains($userGroup) )
+              #set( $isStaticGroupAuthorized = true )
+              #break
+            #end
+          #end
+          ## [End] Static Group Authorization Checks **
+
+
+          #if( ! $isStaticGroupAuthorized )
+            ## No dynamic group authorization rules **
+
+
+            ## [Start] Owner Authorization Checks **
+            #set( $ownerAuthExpressions = [] )
+            #set( $ownerAuthExpressionValues = {} )
+            #set( $ownerAuthExpressionNames = {} )
+            ## Authorization rule: { allow: owner, ownerField: "owner", identityClaim: "sub" } **
+            $util.qr($ownerAuthExpressions.add("#owner0 = :identity0"))
+            $util.qr($ownerAuthExpressionNames.put("#owner0", "owner"))
+            $util.qr($ownerAuthExpressionValues.put(":identity0", $util.dynamodb.toDynamoDB($util.defaultIfNull($ctx.identity.claims.get("sub"), "___xamznone____"))))
+            ## [End] Owner Authorization Checks **
+
+
+            ## [Start] Collect Auth Condition **
+            #set( $authCondition = $util.defaultIfNull($authCondition, {
+          "expression": "",
+          "expressionNames": {},
+          "expressionValues": {}
+        }) )
+            #set( $totalAuthExpression = "" )
+            ## Add dynamic group auth conditions if they exist **
+            #if( $groupAuthExpressions )
+              #foreach( $authExpr in $groupAuthExpressions )
+                #set( $totalAuthExpression = "$totalAuthExpression $authExpr" )
+                #if( $foreach.hasNext )
+                  #set( $totalAuthExpression = "$totalAuthExpression OR" )
+                #end
+              #end
+            #end
+            #if( $groupAuthExpressionNames )
+              $util.qr($authCondition.expressionNames.putAll($groupAuthExpressionNames))
+            #end
+            #if( $groupAuthExpressionValues )
+              $util.qr($authCondition.expressionValues.putAll($groupAuthExpressionValues))
+            #end
+            ## Add owner auth conditions if they exist **
+            #if( $totalAuthExpression != "" && $ownerAuthExpressions && $ownerAuthExpressions.size() > 0 )
+              #set( $totalAuthExpression = "$totalAuthExpression OR" )
+            #end
+            #if( $ownerAuthExpressions )
+              #foreach( $authExpr in $ownerAuthExpressions )
+                #set( $totalAuthExpression = "$totalAuthExpression $authExpr" )
+                #if( $foreach.hasNext )
+                  #set( $totalAuthExpression = "$totalAuthExpression OR" )
+                #end
+              #end
+            #end
+            #if( $ownerAuthExpressionNames )
+              $util.qr($authCondition.expressionNames.putAll($ownerAuthExpressionNames))
+            #end
+            #if( $ownerAuthExpressionValues )
+              $util.qr($authCondition.expressionValues.putAll($ownerAuthExpressionValues))
+            #end
+            ## Set final expression if it has changed. **
+            #if( $totalAuthExpression != "" )
+              #if( $util.isNullOrEmpty($authCondition.expression) )
+                #set( $authCondition.expression = "($totalAuthExpression)" )
+              #else
+                #set( $authCondition.expression = "$authCondition.expression AND ($totalAuthExpression)" )
+              #end
+            #end
+            ## [End] Collect Auth Condition **
+          #end
+
+
+          ## [Start] Throw if unauthorized **
+          #if( !($isStaticGroupAuthorized == true || ($totalAuthExpression != "")) )
+            $util.unauthorized()
+          #end
+          ## [End] Throw if unauthorized **
+        #end
+
+        ## [End] Check authMode and execute owner/group checks **
+
+
+        #if( $authCondition )
+          #set( $condition = $authCondition )
+          #if( $modelObjectKey )
+            #foreach( $entry in $modelObjectKey.entrySet() )
+              $util.qr($condition.put("expression", "$condition.expression AND attribute_exists(#keyCondition$velocityCount)"))
+              $util.qr($condition.expressionNames.put("#keyCondition$velocityCount", "$entry.key"))
+            #end
+          #else
+            $util.qr($condition.put("expression", "$condition.expression AND attribute_exists(#id)"))
+            $util.qr($condition.expressionNames.put("#id", "id"))
+          #end
+        #else
+          #if( $modelObjectKey )
+            #set( $condition = {
+          "expression": "",
+          "expressionNames": {}
+        } )
+            #foreach( $entry in $modelObjectKey.entrySet() )
+              #if( $velocityCount == 1 )
+                $util.qr($condition.put("expression", "attribute_exists(#keyCondition$velocityCount)"))
+              #else
+                $util.qr($condition.put("expression", "$condition.expression AND attribute_exists(#keyCondition$velocityCount)"))
+              #end
+              $util.qr($condition.expressionNames.put("#keyCondition$velocityCount", "$entry.key"))
+            #end
+          #else
+            #set( $condition = {
+          "expression": "attribute_exists(#id)",
+          "expressionNames": {
+              "#id": "id"
+          }
+        } )
+          #end
+        #end
+
+        #if( $versionedCondition )
+          $util.qr($condition.put("expression", "($condition.expression) AND $versionedCondition.expression"))
+          $util.qr($condition.expressionNames.putAll($versionedCondition.expressionNames))
+          #set( $expressionValues = $util.defaultIfNull($condition.expressionValues, {}) )
+          $util.qr($expressionValues.putAll($versionedCondition.expressionValues))
+          #set( $condition.expressionValues = $expressionValues )
+        #end
+
+        #if( $context.args.condition )
+          #set( $conditionFilterExpressions = $util.parseJson($util.transform.toDynamoDBConditionExpression($context.args.condition)) )
+          $util.qr($condition.put("expression", "($condition.expression) AND $conditionFilterExpressions.expression"))
+          $util.qr($condition.expressionNames.putAll($conditionFilterExpressions.expressionNames))
+          #set( $conditionExpressionValues = $util.defaultIfNull($condition.expressionValues, {}) )
+          $util.qr($conditionExpressionValues.putAll($conditionFilterExpressions.expressionValues))
+          #set( $condition.expressionValues = $conditionExpressionValues )
+          $util.qr($condition.expressionValues.putAll($conditionFilterExpressions.expressionValues))
+        #end
+
+        #if( $condition.expressionValues && $condition.expressionValues.size() == 0 )
+          #set( $condition = {
+          "expression": $condition.expression,
+          "expressionNames": $condition.expressionNames
+        } )
+
+        #end
+
+        {
+          "version": "2017-02-28",
+          "operation": "DeleteItem",
+          "key": #if( $modelObjectKey ) $util.toJson($modelObjectKey) #else {
+          "id": $util.dynamodb.toDynamoDBJson($ctx.args.input.id)
+        } #end,
+          "condition": $util.toJson($condition)
+        }
+      ResponseMappingTemplate: $util.toJson($ctx.result)
+    Metadata:
+      aws:cdk:path: GraphqlCdkStack/deleteTodoResolver
+  getTodoResolver:
+    Type: AWS::AppSync::Resolver
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+          - TodoAPI
+          - ApiId
+      FieldName: getTodo
+      TypeName: Query
+      DataSourceName: todoTable
+      RequestMappingTemplate: >-
+        {
+          "version": "2017-02-28",
+          "operation": "GetItem",
+          "key": #if( $modelObjectKey ) $util.toJson($modelObjectKey) #else {
+          "id": $util.dynamodb.toDynamoDBJson($ctx.args.id)
+        } #end
+
+        }
+      ResponseMappingTemplate: >-
+        ## [Start] Determine request authentication mode **
+
+        #if( $util.isNullOrEmpty($authMode) && !$util.isNull($ctx.identity) && !$util.isNull($ctx.identity.sub) && !$util.isNull($ctx.identity.issuer) && !$util.isNull($ctx.identity.username) && !$util.isNull($ctx.identity.claims) && !$util.isNull($ctx.identity.sourceIp) && !$util.isNull($ctx.identity.defaultAuthStrategy) )
+          #set( $authMode = "userPools" )
+        #end
+
+        ## [End] Determine request authentication mode **
+
+        ## [Start] Check authMode and execute owner/group checks **
+
+        #if( $authMode == "userPools" )
+          ## [Start] Static Group Authorization Checks **
+          #set($isStaticGroupAuthorized = $util.defaultIfNull(
+                    $isStaticGroupAuthorized, false))
+          ## Authorization rule: { allow: groups, groups: ["Admin"], groupClaim: "cognito:groups" } **
+          #set( $userGroups = $util.defaultIfNull($ctx.identity.claims.get("cognito:groups"), []) )
+          #set( $allowedGroups = ["Admin"] )
+          #foreach( $userGroup in $userGroups )
+            #if( $allowedGroups.contains($userGroup) )
+              #set( $isStaticGroupAuthorized = true )
+              #break
+            #end
+          #end
+          ## [End] Static Group Authorization Checks **
+
+
+          ## No Dynamic Group Authorization Rules **
+
+
+          ## [Start] Owner Authorization Checks **
+          #set( $isOwnerAuthorized = $util.defaultIfNull($isOwnerAuthorized, false) )
+          ## Authorization rule: { allow: owner, ownerField: "owner", identityClaim: "sub" } **
+          #set( $allowedOwners0 = $ctx.result.owner )
+          #set( $identityValue = $util.defaultIfNull($ctx.identity.claims.get("sub"), "___xamznone____") )
+          #if( $util.isList($allowedOwners0) )
+            #foreach( $allowedOwner in $allowedOwners0 )
+              #if( $allowedOwner == $identityValue )
+                #set( $isOwnerAuthorized = true )
+              #end
+            #end
+          #end
+          #if( $util.isString($allowedOwners0) )
+            #if( $allowedOwners0 == $identityValue )
+              #set( $isOwnerAuthorized = true )
+            #end
+          #end
+          ## [End] Owner Authorization Checks **
+
+
+          ## [Start] Throw if unauthorized **
+          #if( !($isStaticGroupAuthorized == true || $isDynamicGroupAuthorized == true || $isOwnerAuthorized == true) )
+            $util.unauthorized()
+          #end
+          ## [End] Throw if unauthorized **
+        #end
+
+        ## [End] Check authMode and execute owner/group checks **
+
+
+        $util.toJson($ctx.result)
+    Metadata:
+      aws:cdk:path: GraphqlCdkStack/getTodoResolver
+  listTodosResolver:
+    Type: AWS::AppSync::Resolver
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+          - TodoAPI
+          - ApiId
+      FieldName: listTodos
+      TypeName: Query
+      DataSourceName: todoTable
+      RequestMappingTemplate: >-
+        #set( $limit = $util.defaultIfNull($context.args.limit, 10) )
+
+        #set( $ListRequest = {
+          "version": "2017-02-28",
+          "limit": $limit
+        } )
+
+        #if( $context.args.nextToken )
+          #set( $ListRequest.nextToken = "$context.args.nextToken" )
+        #end
+
+        #if( $context.args.filter )
+          #set( $ListRequest.filter = $util.parseJson("$util.transform.toDynamoDBFilterExpression($ctx.args.filter)") )
+        #end
+
+        #if( !$util.isNull($modelQueryExpression)
+                                && !$util.isNullOrEmpty($modelQueryExpression.expression) )
+          $util.qr($ListRequest.put("operation", "Query"))
+          $util.qr($ListRequest.put("query", $modelQueryExpression))
+          #if( !$util.isNull($ctx.args.sortDirection) && $ctx.args.sortDirection == "DESC" )
+            #set( $ListRequest.scanIndexForward = false )
+          #else
+            #set( $ListRequest.scanIndexForward = true )
+          #end
+        #else
+          $util.qr($ListRequest.put("operation", "Scan"))
+        #end
+
+        $util.toJson($ListRequest)
+      ResponseMappingTemplate: >-
+        ## [Start] Determine request authentication mode **
+
+        #if( $util.isNullOrEmpty($authMode) && !$util.isNull($ctx.identity) && !$util.isNull($ctx.identity.sub) && !$util.isNull($ctx.identity.issuer) && !$util.isNull($ctx.identity.username) && !$util.isNull($ctx.identity.claims) && !$util.isNull($ctx.identity.sourceIp) && !$util.isNull($ctx.identity.defaultAuthStrategy) )
+          #set( $authMode = "userPools" )
+        #end
+
+        ## [End] Determine request authentication mode **
+
+        ## [Start] Check authMode and execute owner/group checks **
+
+        #if( $authMode == "userPools" )
+          ## [Start] Static Group Authorization Checks **
+          #set($isStaticGroupAuthorized = $util.defaultIfNull(
+                    $isStaticGroupAuthorized, false))
+          ## Authorization rule: { allow: groups, groups: ["Admin"], groupClaim: "cognito:groups" } **
+          #set( $userGroups = $util.defaultIfNull($ctx.identity.claims.get("cognito:groups"), []) )
+          #set( $allowedGroups = ["Admin"] )
+          #foreach( $userGroup in $userGroups )
+            #if( $allowedGroups.contains($userGroup) )
+              #set( $isStaticGroupAuthorized = true )
+              #break
+            #end
+          #end
+          ## [End] Static Group Authorization Checks **
+
+
+          ## [Start] If not static group authorized, filter items **
+          #if( !$isStaticGroupAuthorized )
+            #set( $items = [] )
+            #foreach( $item in $ctx.result.items )
+              ## No Dynamic Group Authorization Rules **
+
+
+              ## [Start] Owner Authorization Checks **
+              #set( $isLocalOwnerAuthorized = false )
+              ## Authorization rule: { allow: owner, ownerField: "owner", identityClaim: "sub" } **
+              #set( $allowedOwners0 = $item.owner )
+              #set( $identityValue = $util.defaultIfNull($ctx.identity.claims.get("sub"), "___xamznone____") )
+              #if( $util.isList($allowedOwners0) )
+                #foreach( $allowedOwner in $allowedOwners0 )
+                  #if( $allowedOwner == $identityValue )
+                    #set( $isLocalOwnerAuthorized = true )
+                  #end
+                #end
+              #end
+              #if( $util.isString($allowedOwners0) )
+                #if( $allowedOwners0 == $identityValue )
+                  #set( $isLocalOwnerAuthorized = true )
+                #end
+              #end
+              ## [End] Owner Authorization Checks **
+
+
+              #if( ($isLocalDynamicGroupAuthorized == true || $isLocalOwnerAuthorized == true) )
+                $util.qr($items.add($item))
+              #end
+            #end
+            #set( $ctx.result.items = $items )
+          #end
+          ## [End] If not static group authorized, filter items **
+        #end
+
+        ## [End] Check authMode and execute owner/group checks **
+
+
+        $util.toJson($ctx.result)
+    Metadata:
+      aws:cdk:path: GraphqlCdkStack/listTodosResolver
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Modules: aws-cdk=1.20.0,@aws-cdk/aws-applicationautoscaling=1.20.0,@aws-cdk/aws-appsync=1.20.0,@aws-cdk/aws-autoscaling-common=1.20.0,@aws-cdk/aws-cloudwatch=1.20.0,@aws-cdk/aws-dynamodb=1.20.0,@aws-cdk/aws-iam=1.20.0,@aws-cdk/core=1.20.0,@aws-cdk/cx-api=1.20.0,@aws-cdk/region-info=1.20.0,jsii-runtime=node.js/v8.10.0
+    Condition: CDKMetadataAvailable
+Conditions:
+  CDKMetadataAvailable:
+    Fn::Or:
+      - Fn::Or:
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-east-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-northeast-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-northeast-2
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-south-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-southeast-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-southeast-2
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ca-central-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - cn-north-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - cn-northwest-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - eu-central-1
+      - Fn::Or:
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - eu-north-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - eu-west-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - eu-west-2
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - eu-west-3
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - me-south-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - sa-east-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - us-east-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - us-east-2
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - us-west-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - us-west-2
+
